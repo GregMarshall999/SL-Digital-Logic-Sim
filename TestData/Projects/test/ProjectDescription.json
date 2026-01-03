@@ -3,7 +3,7 @@
   "DLSVersion_LastSaved": "2.1.6",
   "DLSVersion_EarliestCompatible": "2.0.0",
   "CreationTime": "2026-01-03T13:42:26.502+01:00",
-  "LastSaveTime": "2026-01-03T13:43:29.719+01:00",
+  "LastSaveTime": "2026-01-03T18:03:40.457+01:00",
   "Prefs_MainPinNamesDisplayMode": 1,
   "Prefs_ChipPinNamesDisplayMode": 1,
   "Prefs_GridDisplayMode": 0,
@@ -12,7 +12,9 @@
   "Prefs_SimPaused": false,
   "Prefs_SimTargetStepsPerSecond": 1000,
   "Prefs_SimStepsPerClockTick": 250,
-  "AllCustomChipNames":[],
+  "AllCustomChipNames":[
+    "vert"
+  ],
   "StarredList":[
     {
       "Name":"IN/OUT",
@@ -20,6 +22,10 @@
     },
     {
       "Name":"NAND",
+      "IsCollection":false
+    },
+    {
+      "Name":"vert",
       "IsCollection":false
     }
   ],

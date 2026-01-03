@@ -53,15 +53,36 @@ namespace DLS.Game
 		}
 
 		public Vector2 HandlePosition => Position;
-		public Vector2 StateDisplayPosition => HandlePosition + faceDir * (DevPinHandleWidth / 2 + StateGridSize.x / 2 + 0.065f);
+		public Vector2 StateDisplayPosition
+		{
+			get
+			{
+				Vector2 baseOffset = faceDir * (DevPinHandleWidth / 2 + StateGridSize.x / 2 + 0.065f);
+				return HandlePosition + RotateVector(baseOffset, Rotation);
+			}
+		}
 
 		public Vector2 PinPosition
 		{
 			get
 			{
 				int gridDst = BitCount is PinBitCount.Bit1 or PinBitCount.Bit4 ? 6 : 9;
-				return HandlePosition + faceDir * (GridSize * gridDst);
+				Vector2 baseOffset = faceDir * (GridSize * gridDst);
+				return HandlePosition + RotateVector(baseOffset, Rotation);
 			}
+		}
+
+		static Vector2 RotateVector(Vector2 v, int rotation)
+		{
+			// Rotate vector 90° clockwise per rotation step
+			return rotation switch
+			{
+				0 => v,
+				1 => new Vector2(v.y, -v.x),  // 90° clockwise
+				2 => new Vector2(-v.x, -v.y), // 180°
+				3 => new Vector2(-v.y, v.x),  // 270° clockwise
+				_ => v
+			};
 		}
 
 
@@ -69,6 +90,7 @@ namespace DLS.Game
 		public Vector2 MoveStartPosition { get; set; }
 		public Vector2 StraightLineReferencePoint { get; set; }
 		public int ID { get; }
+		public int Rotation { get; set; } // 0, 1, 2, 3 representing 0°, 90°, 180°, 270° clockwise
 
 		public bool IsSelected { get; set; }
 		public bool HasReferencePointForStraightLineMovement { get; set; }
@@ -102,13 +124,16 @@ namespace DLS.Game
 
 		Bounds2D CreateBoundingBox(float pad)
 		{
-			float x1 = HandlePosition.x - faceDir.x * DevPinHandleWidth / 2;
-			float x2 = PinPosition.x + faceDir.x * PinRadius;
-			float minX = Mathf.Min(x1, x2);
-			float maxX = Mathf.Max(x1, x2);
-
-			Vector2 centre = new((minX + maxX) / 2, HandlePosition.y);
-			Vector2 size = new Vector2(maxX - minX, BoundsHeight()) + Vector2.one * pad;
+			Vector2 rotatedFaceDir = RotateVector(faceDir, Rotation);
+			Vector2 handleSize = GetHandleSize();
+			Vector2 pinPos = PinPosition;
+			Vector2 pinOffset = RotateVector(faceDir * PinRadius, Rotation);
+			
+			Vector2 min = Vector2.Min(HandlePosition - rotatedFaceDir * handleSize.x / 2, pinPos - pinOffset);
+			Vector2 max = Vector2.Max(HandlePosition + rotatedFaceDir * handleSize.x / 2, pinPos + pinOffset);
+			
+			Vector2 centre = (min + max) / 2;
+			Vector2 size = max - min + Vector2.one * pad;
 			return Bounds2D.CreateFromCentreAndSize(centre, size);
 		}
 
@@ -116,7 +141,12 @@ namespace DLS.Game
 
 		public float BoundsHeight() => StateGridSize.y;
 
-		public Vector2 GetHandleSize() => new(DevPinHandleWidth, BoundsHeight());
+		public Vector2 GetHandleSize()
+		{
+			Vector2 baseSize = new(DevPinHandleWidth, BoundsHeight());
+			// Swap width/height when rotated 90° or 270°
+			return (Rotation % 2 == 0) ? baseSize : new Vector2(baseSize.y, baseSize.x);
+		}
 
 		public void ToggleState(int bitIndex)
 		{

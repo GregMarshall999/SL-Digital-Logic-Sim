@@ -214,7 +214,9 @@ namespace DLS.Graphics
 			FontType font = FontBold;
 
 			Vector2 size = Draw.CalculateTextBoundsSize(text, FontSizePinLabel, font) + LabelBackgroundPadding;
-			Vector2 centre = chip.Position + Vector2.down * (chip.Size.y / 2 + offsetY);
+			Vector2 rotatedSize = chip.RotatedSize;
+			Vector2 offset = RotateVector(Vector2.down * (rotatedSize.y / 2 + offsetY), chip.Rotation);
+			Vector2 centre = chip.Position + offset;
 
 			Draw.Quad(centre, size, ActiveTheme.PinLabelCol);
 			Draw.Text(font, text, FontSizePinLabel, centre, Anchor.TextFirstLineCentre, Color.white);
@@ -263,6 +265,8 @@ namespace DLS.Graphics
 			Color chipCol = desc.Colour;
 			Vector2 pos = subchip.Position;
 			bool isKeyChip = subchip.ChipType == ChipType.Key;
+			Vector2 rotatedSize = subchip.RotatedSize;
+			int rotation = subchip.Rotation;
 
 			if (isKeyChip)
 			{
@@ -291,12 +295,12 @@ namespace DLS.Graphics
 			}
 
 
-			// Draw outline and body
-			Draw.Quad(pos, desc.Size + Vector2.one * ChipOutlineWidth, outlineCol);
-			Draw.Quad(pos, desc.Size, chipCol);
+			// Draw outline and body (using rotated size)
+			Draw.Quad(pos, rotatedSize + Vector2.one * ChipOutlineWidth, outlineCol);
+			Draw.Quad(pos, rotatedSize, chipCol);
 
-			// Mouse over detection
-			if (InputHelper.MouseInsideBounds_World(pos, desc.Size))
+			// Mouse over detection (using rotated size)
+			if (InputHelper.MouseInsideBounds_World(pos, rotatedSize))
 			{
 				// If mouse is over one of this chip's pins, then prioritize keeping the pin highlighted (so interaction is not too fiddly)
 				if (InteractionState.PinUnderMouse == null || InteractionState.PinUnderMouse.parent != subchip)
@@ -310,24 +314,26 @@ namespace DLS.Graphics
 			{
 				// Display on single line if name fits comfortably, otherwise use 'formatted' version (split across multiple lines)
 				string displayName = isKeyChip ? subchip.activationKeyString : subchip.MultiLineName;
-				if (Draw.CalculateTextBoundsSize(subchip.Description.Name, FontSizeChipName, FontBold).x < subchip.Size.x - PinRadius * 2.5f)
+				if (Draw.CalculateTextBoundsSize(subchip.Description.Name, FontSizeChipName, FontBold).x < rotatedSize.x - PinRadius * 2.5f)
 				{
 					displayName = subchip.Description.Name;
 				}
 
 				bool nameCentre = desc.NameLocation == NameDisplayLocation.Centre || isKeyChip;
 				Anchor textAnchor = nameCentre ? Anchor.TextCentre : Anchor.CentreTop;
-				Vector2 textPos = nameCentre ? pos : pos + Vector2.up * (subchip.Size.y / 2 - GridSize / 2);
+				Vector2 textPos = nameCentre ? pos : pos + RotateVector(Vector2.up * (rotatedSize.y / 2 - GridSize / 2), rotation);
 
 				// Draw background band behind text if placed at top (so it doesn't look out of place..)
 				if (desc.NameLocation == NameDisplayLocation.Top)
 				{
 					Color bgBandCol = GetChipDisplayBorderCol(chipCol);
-					Vector2 topLeft = pos + new Vector2(-desc.Size.x / 2, desc.Size.y / 2);
+					Vector2 topDir = RotateVector(Vector2.up, rotation);
+					Vector2 rightDir = RotateVector(Vector2.right, rotation);
+					Vector2 topLeft = pos + topDir * (rotatedSize.y / 2) - rightDir * (rotatedSize.x / 2);
 					TextRenderer.BoundingBox textBounds = Draw.CalculateTextBounds(displayName, FontBold, FontSizeChipName, textPos, textAnchor);
-					float h = (topLeft.y - textBounds.Centre.y) * 2;
+					float h = (topDir.y * rotatedSize.y / 2 - textBounds.Centre.y) * 2;
 
-					Vector2 s = new(desc.Size.x, h);
+					Vector2 s = new(rotatedSize.x, h);
 					Vector2 c = topLeft + new Vector2(s.x, -s.y) / 2;
 					Draw.Quad(c, s, bgBandCol);
 				}
@@ -336,9 +342,23 @@ namespace DLS.Graphics
 			}
 		}
 
+		static Vector2 RotateVector(Vector2 v, int rotation)
+		{
+			// Rotate vector 90° clockwise per rotation step
+			return rotation switch
+			{
+				0 => v,
+				1 => new Vector2(v.y, -v.x),  // 90° clockwise
+				2 => new Vector2(-v.x, -v.y), // 180°
+				3 => new Vector2(-v.y, v.x),  // 270° clockwise
+				_ => v
+			};
+		}
+
 		public static void DrawSubchipDisplays(SubChipInstance subchip, SimChip sim = null, bool outOfBoundsDisplay = false)
 		{
-			Bounds2D subchipMask = Bounds2D.CreateFromCentreAndSize(subchip.Position, subchip.Size);
+			Vector2 rotatedSize = subchip.RotatedSize;
+			Bounds2D subchipMask = Bounds2D.CreateFromCentreAndSize(subchip.Position, rotatedSize);
 
 			Span<Bounds2D> allBounds = outOfBoundsDisplay ? stackalloc Bounds2D[subchip.Displays.Count] : null;
 
@@ -356,7 +376,7 @@ namespace DLS.Graphics
 			if (outOfBoundsDisplay)
 			{
 				Color outOfBoundsCol = new(1, 0, 0, 0.24f);
-				Bounds2D maskBounds = Bounds2D.CreateFromCentreAndSize(subchip.Position, subchip.Size);
+				Bounds2D maskBounds = Bounds2D.CreateFromCentreAndSize(subchip.Position, rotatedSize);
 
 				foreach (Bounds2D bounds in allBounds)
 				{
@@ -630,14 +650,22 @@ namespace DLS.Graphics
 
 			// ---- State indicator grid ----
 			Vector2Int stateGridDim = devPin.StateGridDimensions;
+			int rotation = devPin.Rotation;
 
 			const float squareDisplayScaleT = 0.9f;
 			Vector2 squareDisplaySize = Vector2.one * (MultiBitPinStateDisplaySquareSize * squareDisplayScaleT);
 			Vector2 inputGridSize = devPin.StateGridSize;
+			// Swap grid size when rotated 90° or 270°
+			if (rotation % 2 == 1)
+			{
+				inputGridSize = new Vector2(inputGridSize.y, inputGridSize.x);
+			}
 			Vector2 inputGridSizeWithoutOutline = inputGridSize - Vector2.one * DevPinStateDisplayOutline;
 			Vector2 centre = devPin.StateDisplayPosition;
 
-			Vector2 topLeft = new(centre.x - inputGridSizeWithoutOutline.x / 2, centre.y + inputGridSizeWithoutOutline.y / 2);
+			// Calculate top-left position accounting for rotation
+			Vector2 topLeftDir = RotateVector(new Vector2(-0.5f, 0.5f), rotation);
+			Vector2 topLeft = centre + new Vector2(topLeftDir.x * inputGridSizeWithoutOutline.x, topLeftDir.y * inputGridSizeWithoutOutline.y);
 			Draw.Quad(centre, inputGridSize, Color.black);
 			int currBitIndex = (int)devPin.BitCount - 1;
 
@@ -652,7 +680,8 @@ namespace DLS.Graphics
 			{
 				for (int x = 0; x < stateGridDim.x; x++)
 				{
-					Vector2 pos = topLeft + MultiBitPinStateDisplaySquareSize * new Vector2(x + 0.5f, -(y + 0.5f));
+					Vector2 localPos = MultiBitPinStateDisplaySquareSize * new Vector2(x + 0.5f, -(y + 0.5f));
+					Vector2 pos = topLeft + RotateVector(localPos, rotation);
 
 					// Highlight on hover, toggle on press
 					bool mouseOverStateToggle = InputHelper.MouseInsideBounds_World(pos, squareDisplaySize);

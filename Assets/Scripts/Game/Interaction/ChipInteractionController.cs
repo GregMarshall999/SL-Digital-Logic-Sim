@@ -232,6 +232,21 @@ namespace DLS.Game
 			{
 				CancelEverything();
 			}
+
+			if (KeyboardShortcuts.RotateShortcutTriggered && IsPlacingElements)
+			{
+				foreach (IMoveable element in SelectedElements)
+				{
+					if (element is SubChipInstance subChip)
+					{
+						subChip.Rotation = (subChip.Rotation + 1) % 4;
+					}
+					else if (element is DevPinInstance devPin)
+					{
+						devPin.Rotation = (devPin.Rotation + 1) % 4;
+					}
+				}
+			}
 		}
 
 		void HandleMouseInput()

@@ -1,0 +1,60 @@
+{
+  "DLSVersion": "2.1.6",
+  "Name": "vert",
+  "NameLocation": 0,
+  "ChipType": 0,
+  "Size": {
+    "x": 0.725,
+    "y": 0.375
+  },
+  "Colour": {
+    "r": 0.4122557,
+    "g": 0.0217213519,
+    "b": 0.7447282,
+    "a": 1
+  },
+  "InputPins":[
+    {
+      "Name":"IN",
+      "ID":1962671033,
+      "Position":{
+        "x":-0.41979,
+        "y":2.59197
+      },
+      "BitCount":1,
+      "Colour":0,
+      "ValueDisplayMode":0
+    }
+  ],
+  "OutputPins":[
+    {
+      "Name":"OUT",
+      "ID":145769186,
+      "Position":{
+        "x":-0.52683,
+        "y":-1.75585
+      },
+      "BitCount":1,
+      "Colour":0,
+      "ValueDisplayMode":0
+    }
+  ],
+  "SubChips":[],
+  "Wires":[
+    {
+      "SourcePinAddress":{
+        "PinID":0,
+        "PinOwnerID":1962671033
+      },
+      "TargetPinAddress":{
+        "PinID":0,
+        "PinOwnerID":145769186
+      },
+      "ConnectionType":0,
+      "ConnectedWireIndex":-1,
+      "ConnectedWireSegmentIndex":-1,
+      "Points":[{"x":0.0,"y":0.0},{"x":0.0,"y":0.0}]
+    }
+  ],
+  "Displays": null
+}

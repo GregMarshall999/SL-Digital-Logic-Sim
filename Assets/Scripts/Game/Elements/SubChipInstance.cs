@@ -38,6 +38,7 @@ namespace DLS.Game
 			Position = subChipDesc.Position;
 			ID = subChipDesc.ID;
 			Label = subChipDesc.Label;
+			Rotation = subChipDesc.Rotation;
 			IsBus = ChipTypeHelper.IsBusType(ChipType);
 			MultiLineName = CreateMultiLineName(description.Name);
 			MinSize = CalculateMinChipSize(description.InputPins, description.OutputPins, description.Name);
@@ -96,6 +97,7 @@ namespace DLS.Game
 		public bool BusIsFlipped => IsBus && InternalData.Length > 1 && InternalData[1] == 1;
 		public Vector2 Size => Description.Size;
 		public Vector2 Position { get; set; }
+		public int Rotation { get; set; } // 0, 1, 2, 3 representing 0°, 90°, 180°, 270° clockwise
 
 		public Vector2 MoveStartPosition { get; set; }
 		public Vector2 StraightLineReferencePoint { get; set; }
@@ -104,6 +106,8 @@ namespace DLS.Game
 		public bool IsSelected { get; set; }
 		public bool HasReferencePointForStraightLineMovement { get; set; }
 		public bool IsValidMovePos { get; set; }
+
+		public Vector2 RotatedSize => (Rotation % 2 == 0) ? Size : new Vector2(Size.y, Size.x);
 
 		public Bounds2D BoundingBox => CreateBoundingBox(0);
 		public Bounds2D SelectionBoundingBox => CreateBoundingBox(DrawSettings.SelectionBoundsPadding);
@@ -267,25 +271,40 @@ namespace DLS.Game
 
 		Bounds2D CreateBoundingBox(float pad)
 		{
+			Vector2 rotatedSize = RotatedSize;
 			float pinWidthPad = 0;
-			float offsetX = 0;
+			Vector2 offset = Vector2.zero;
 			bool inputsHidden = ChipTypeHelper.IsBusOriginType(ChipType);
 			float flipX = BusIsFlipped ? -1 : 1;
 
+			// Calculate pin padding based on rotation
 			if (InputPins.Length > 0 && !inputsHidden)
 			{
 				pinWidthPad += DrawSettings.PinRadius;
-				offsetX -= DrawSettings.PinRadius / 2 * flipX;
+				offset -= GetRotatedDirection(Vector2.left) * (DrawSettings.PinRadius / 2 * flipX);
 			}
 
 			if (OutputPins.Length > 0)
 			{
 				pinWidthPad += DrawSettings.PinRadius;
-				offsetX += DrawSettings.PinRadius / 2 * flipX;
+				offset += GetRotatedDirection(Vector2.right) * (DrawSettings.PinRadius / 2 * flipX);
 			}
 
 			Vector2 padFinal = new(pinWidthPad + DrawSettings.ChipOutlineWidth + pad, DrawSettings.ChipOutlineWidth + pad);
-			return Bounds2D.CreateFromCentreAndSize(Position + Vector2.right * offsetX, Size + padFinal);
+			return Bounds2D.CreateFromCentreAndSize(Position + offset, rotatedSize + padFinal);
+		}
+
+		Vector2 GetRotatedDirection(Vector2 dir)
+		{
+			// Rotate direction vector by rotation amount (90° clockwise per step)
+			return Rotation switch
+			{
+				0 => dir,
+				1 => new Vector2(dir.y, -dir.x),  // 90° clockwise
+				2 => new Vector2(-dir.x, -dir.y), // 180°
+				3 => new Vector2(-dir.y, dir.x),  // 270° clockwise (90° counter-clockwise)
+				_ => dir
+			};
 		}
 
 		public static Vector2 CalculateMinChipSize(PinDescription[] inputPins, PinDescription[] outputPins, string unformattedName)
