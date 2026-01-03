@@ -49,10 +49,63 @@ namespace DLS.Simulation
 			}
 		}
 
+		public static void Set4BitFrom16BitSource(ref uint state, uint source16bit, int nibbleIndex)
+		{
+			// nibbleIndex: 0 = lsb, 1 = second, 2 = third, 3 = msb
+			ushort sourceBitStates = GetBitStates(source16bit);
+			ushort sourceTristateFlags = GetTristateFlags(source16bit);
+			const ushort mask = 0b1111;
+			int shift = nibbleIndex * 4;
+			Set(ref state, (ushort)((sourceBitStates >> shift) & mask), (ushort)((sourceTristateFlags >> shift) & mask));
+		}
+
 		public static void Set8BitFrom4BitSources(ref uint state, uint a, uint b)
 		{
 			ushort bitStates = (ushort)(GetBitStates(a) | (GetBitStates(b) << 4));
 			ushort tristateFlags = (ushort)((GetTristateFlags(a) & 0b1111) | ((GetTristateFlags(b) & 0b1111) << 4));
+			Set(ref state, bitStates, tristateFlags);
+		}
+
+		public static void Set8BitFrom16BitSource(ref uint state, uint source16bit, bool firstByte)
+		{
+			ushort sourceBitStates = GetBitStates(source16bit);
+			ushort sourceTristateFlags = GetTristateFlags(source16bit);
+
+			if (firstByte)
+			{
+				const ushort mask = 0b11111111;
+				Set(ref state, (ushort)(sourceBitStates & mask), (ushort)(sourceTristateFlags & mask));
+			}
+			else
+			{
+				const ushort mask = 0b1111111100000000;
+				Set(ref state, (ushort)((sourceBitStates & mask) >> 8), (ushort)((sourceTristateFlags & mask) >> 8));
+			}
+		}
+
+		public static void Set16BitFrom8BitSources(ref uint state, uint a, uint b)
+		{
+			ushort bitStatesA = GetBitStates(a);
+			ushort bitStatesB = GetBitStates(b);
+			ushort tristateFlagsA = GetTristateFlags(a);
+			ushort tristateFlagsB = GetTristateFlags(b);
+			ushort bitStates = (ushort)(bitStatesA | (bitStatesB << 8));
+			ushort tristateFlags = (ushort)((tristateFlagsA & 0b11111111) | ((tristateFlagsB & 0b11111111) << 8));
+			Set(ref state, bitStates, tristateFlags);
+		}
+
+		public static void Set16BitFrom4BitSources(ref uint state, uint a, uint b, uint c, uint d)
+		{
+			ushort bitStatesA = GetBitStates(a);
+			ushort bitStatesB = GetBitStates(b);
+			ushort bitStatesC = GetBitStates(c);
+			ushort bitStatesD = GetBitStates(d);
+			ushort tristateFlagsA = GetTristateFlags(a);
+			ushort tristateFlagsB = GetTristateFlags(b);
+			ushort tristateFlagsC = GetTristateFlags(c);
+			ushort tristateFlagsD = GetTristateFlags(d);
+			ushort bitStates = (ushort)(bitStatesA | (bitStatesB << 4) | (bitStatesC << 8) | (bitStatesD << 12));
+			ushort tristateFlags = (ushort)((tristateFlagsA & 0b1111) | ((tristateFlagsB & 0b1111) << 4) | ((tristateFlagsC & 0b1111) << 8) | ((tristateFlagsD & 0b1111) << 12));
 			Set(ref state, bitStates, tristateFlags);
 		}
 

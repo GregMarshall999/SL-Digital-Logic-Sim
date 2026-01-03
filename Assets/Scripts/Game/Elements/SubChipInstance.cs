@@ -199,6 +199,8 @@ namespace DLS.Game
 				{
 					PinBitCount.Bit1 => 2,
 					PinBitCount.Bit4 => 3,
+					PinBitCount.Bit8 => 4,
+					PinBitCount.Bit16 => 6,
 					_ => 4
 				};
 
@@ -309,6 +311,7 @@ namespace DLS.Game
 				PinBitCount.Bit1 => DrawSettings.PinRadius * 2,
 				PinBitCount.Bit4 => DrawSettings.PinHeight4Bit,
 				PinBitCount.Bit8 => DrawSettings.PinHeight8Bit,
+				PinBitCount.Bit16 => DrawSettings.PinHeight16Bit,
 				_ => throw new Exception("Bit count not implemented " + bitCount)
 			};
 		}
